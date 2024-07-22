@@ -1,0 +1,99 @@
+CREATE TABLE ACESSOS (
+    ID_ACESSOS INT IDENTITY(1, 1) PRIMARY KEY,
+    ID_CONTRATADO INT,
+    EMAIL_CONTRATADO VARCHAR(255),
+    ID_CARGO_GESTOR INT,
+    ID_CARGO_CONTRATADO INT,
+    RE_GESTOR INT,
+    HIERARQUIA VARCHAR(119),
+    CENTRO_CUSTO INT,
+    DATA_LIBERACAO TIMESTAMP,
+    DATA_REVOGACAO TIMESTAMP,
+    EXCECAO BOOLEAN
+);
+
+CREATE OR REPLACE STAGE ACCESS_MANAGEMENT_AZUL.stage_content.ACCESS_MANAGEMENT_AZUL_STAGE
+  FILE_FORMAT = (TYPE = 'csv' FIELD_DELIMITER = '|' SKIP_HEADER = 1);
+
+CREATE APPLICATION HELLO_SNOWFLAKE_APP11
+  FROM APPLICATION PACKAGE ACCESS_MANAGEMENT_AZUL
+  USING '@ACCESS_MANAGEMENT_AZUL.stage_content.ACCESS_MANAGEMENT_AZUL_STAGE';
+
+SHOW APPLICATIONS;
+
+CALL core.hello();
+
+//Para definir o contexto para o pacote de aplicativo, execute o seguinte comando:
+USE APPLICATION PACKAGE ACCESS_MANAGEMENT_AZUL;
+
+//Para criar uma tabela e adicionar o conteúdo de dados compartilhados, execute os seguintes comandos:
+CREATE SCHEMA IF NOT EXISTS shared_data;
+CREATE TABLE IF NOT EXISTS accounts (ID INT, NAME VARCHAR, VALUE VARCHAR);
+INSERT INTO accounts VALUES
+  (1, 'Nihar', 'Snowflake'),
+  (2, 'Frank', 'Snowflake'),
+  (3, 'Benoit', 'Snowflake'),
+  (4, 'Steven', 'Acme');
+
+SELECT * FROM accounts;
+
+//Para conceder uso na tabela ACCOUNTS, execute os seguintes comandos:
+// faz com que a tabela accounts fique disponível para todos os aplicativos instalados a partir do pacote de aplicativo
+GRANT USAGE ON SCHEMA shared_data TO SHARE IN APPLICATION PACKAGE ACCESS_MANAGEMENT_AZUL;
+GRANT SELECT ON TABLE accounts TO SHARE IN APPLICATION PACKAGE ACCESS_MANAGEMENT_AZUL;
+
+GRANT USAGE ON SCHEMA shared_data TO SHARE IN APPLICATION PACKAGE ACCESS_MANAGEMENT_AZUL;
+GRANT SELECT ON TABLE ACESSOS TO SHARE IN APPLICATION PACKAGE ACCESS_MANAGEMENT_AZUL;
+
+// Testando uma nova feature no app:
+DROP APPLICATION hello_snowflake_app11;
+
+SHOW APPLICATIONS;
+
+CREATE APPLICATION HELLO_ACCESS
+    FROM APPLICATION PACKAGE ACCESS_MANAGEMENT_AZUL
+    USING '@ACCESS_MANAGEMENT_AZUL.STAGE_CONTENT.ACCESS_MANAGEMENT_AZUL_STAGE';
+    
+SELECT * FROM code_schema.accounts_view;
+
+
+// Testando o aplicativo com UDF em python
+DROP APPLICATION HELLO_ACCESS;
+
+CREATE APPLICATION hello_snowflake_app
+  FROM APPLICATION PACKAGE ACCESS_MANAGEMENT_AZUL
+  USING '@ACCESS_MANAGEMENT_AZUL.stage_content.ACCESS_MANAGEMENT_AZUL_STAGE';
+
+SELECT code_schema.addone(1);
+
+SELECT code_schema.multiply(1,2);
+
+// Testando mais uma versão do app
+DROP APPLICATION hello_snowflake_app;
+
+CREATE APPLICATION hello_snowflake_app
+  FROM APPLICATION PACKAGE ACCESS_MANAGEMENT_AZUL
+  USING '@ACCESS_MANAGEMENT_AZUL.stage_content.ACCESS_MANAGEMENT_AZUL_stage';
+
+//Para adicionar uma versão ao seu aplicativo:
+ALTER APPLICATION PACKAGE ACCESS_MANAGEMENT_AZUL
+  ADD VERSION v1_0 USING '@ACCESS_MANAGEMENT_AZUL.stage_content.ACCESS_MANAGEMENT_AZUL_stage';
+
+//Para verificar se a versão foi adicionada ao pacote de aplicativo
+SHOW VERSIONS IN APPLICATION PACKAGE ACCESS_MANAGEMENT_AZUL;
+
+// Para baixar o app com base em uma versão especifica
+DROP APPLICATION hello_snowflake_app;
+CREATE APPLICATION hello_snowflake_app11
+  FROM APPLICATION PACKAGE ACCESS_MANAGEMENT_AZUL
+  USING VERSION V1_0;
+
+
+// Passo a passo da publicação e especificação da versão padrão do app desenvolvido
+SHOW VERSIONS IN APPLICATION PACKAGE ACCESS_MANAGEMENT_AZUL;
+
+//Definindo a versão default do aplicativo
+ALTER APPLICATION PACKAGE ACCESS_MANAGEMENT_AZUL
+  SET DEFAULT RELEASE DIRECTIVE
+  VERSION = v1_0
+  PATCH = 0;
